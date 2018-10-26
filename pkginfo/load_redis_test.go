@@ -15,10 +15,15 @@
 package pkginfo
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
+	"reflect"
 	"testing"
+	"time"
 
 	"github.com/clearlinux/diva/bundle"
+	"github.com/clearlinux/mixer-tools/swupd"
 	"github.com/rafaeljusto/redigomock"
 )
 
@@ -97,7 +102,6 @@ func TestGetBundlesRedis(t *testing.T) {
 	bundleName := "testpkg"
 	bundlesKey := fmt.Sprintf("%s%sbundles", bundleInfo.Name, bundleInfo.Version)
 	bundleKey := fmt.Sprintf("%s:%s", bundlesKey, bundleName)
-	_ = bundleKey
 
 	conn := redigomock.NewConn()
 	cmds := []*redigomock.Cmd{
@@ -135,6 +139,52 @@ func TestGetBundlesRedis(t *testing.T) {
 	err = getBundlesRedis(conn, bundleInfo, "")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	for _, c := range cmds {
+		if conn.Stats(c) == 0 {
+			t.Errorf("expected command %s %s was not called", c.Name, c.Args)
+		}
+	}
+}
+
+func TestGetManfiestHeaderRedis(t *testing.T) {
+
+	// a manifests key is the <mixname><manifestversion>manifests:<manifestname>
+	// the manifest version is what is stored in the manifest.MoM for each
+	// individual bundle.
+	manifestKey := "clear25440manifests:testname"
+	conn := redigomock.NewConn()
+
+	h := swupd.ManifestHeader{
+		Format:  10,
+		Version: 1,
+	}
+
+	b := bytes.Buffer{}
+	err := gob.NewEncoder(&b).Encode(h)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cmds := []*redigomock.Cmd{
+		conn.Command("GET", manifestKey+":Header").Expect(b.Bytes()),
+	}
+
+	header, err := getManifestHeader(conn, manifestKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// if the header object is equal to the empty header object,
+	// it collected no data, so fail
+	if reflect.DeepEqual(header, swupd.ManifestHeader{}) {
+		t.Errorf("header is empty")
+	}
+
+	// check the timestamp parsed to be the correct object type
+	if reflect.TypeOf(header.TimeStamp) != reflect.TypeOf(time.Time{}) {
+		t.Errorf("header.Timestamp is not type time.Time object, but instead %v", reflect.TypeOf(header.TimeStamp))
 	}
 
 	for _, c := range cmds {

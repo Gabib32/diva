@@ -16,8 +16,10 @@ package pkginfo
 
 import (
 	"testing"
+	"time"
 
 	"github.com/clearlinux/diva/bundle"
+	"github.com/clearlinux/mixer-tools/swupd"
 	"github.com/rafaeljusto/redigomock"
 )
 
@@ -64,6 +66,7 @@ func TestStoreBundleInfoRedis(t *testing.T) {
 	conn := redigomock.NewConn()
 	cmds := []*redigomock.Cmd{
 		conn.GenericCommand("SADD").Expect("ok"),
+		conn.GenericCommand("SET").Expect("ok"),
 		conn.GenericCommand("HMSET").Expect("ok"),
 	}
 
@@ -72,13 +75,117 @@ func TestStoreBundleInfoRedis(t *testing.T) {
 			Name:    "clear",
 			Version: "22000",
 		},
-		BundleDefinitions: bundle.DefinitionsSet{"TestBundle": &bundle.Definition{
-			Name:   "TestBundle",
-			Header: bundle.Header{Title: "TestBundle"},
-		},
+	}
+
+	BundleDefinitions := bundle.DefinitionsSet{
+		"TestBundle": &bundle.Definition{
+			Name: "TestBundle",
+			Header: bundle.Header{
+				Title: "TestBundle",
+			},
 		},
 	}
-	err := storeBundleInfoRedis(conn, bundleInfo, &bundleInfo.BundleDefinitions)
+
+	err := storeBundleInfoRedis(conn, bundleInfo, &BundleDefinitions)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, c := range cmds {
+		if conn.Stats(c) == 0 {
+			t.Errorf("expected command %s %s was not called", c.Name, c.Args)
+		}
+	}
+}
+
+func TestStoreManifestHeaderRedis(t *testing.T) {
+	conn := redigomock.NewConn()
+	cmds := []*redigomock.Cmd{
+		conn.GenericCommand("SET").Expect("ok"),
+	}
+
+	header := swupd.ManifestHeader{
+		Format:      uint(17),
+		Version:     uint32(25520),
+		Previous:    uint32(25510),
+		MinVersion:  uint32(25500),
+		FileCount:   uint32(4201),
+		TimeStamp:   time.Now(),
+		ContentSize: uint64(12345),
+		Includes: []*swupd.Manifest{
+			{
+				Name: "bundleOne",
+			},
+			{
+				Name: "numberTwo",
+			},
+			{
+				Name: "three",
+			},
+		},
+	}
+
+	err := storeManifestHeader(conn, &header, "keymanifests")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	for _, c := range cmds {
+		if conn.Stats(c) == 0 {
+			t.Errorf("expected command %s %s was not called", c.Name, c.Args)
+		}
+	}
+}
+
+func TestStoreManifestInfoRedis(t *testing.T) {
+	conn := redigomock.NewConn()
+	cmds := []*redigomock.Cmd{
+		conn.GenericCommand("SADD").Expect("ok"),
+		conn.GenericCommand("HMSET").Expect("ok"),
+		conn.GenericCommand("SET").Expect("ok"),
+	}
+
+	mInfo := &ManifestInfo{
+		BundleInfo: BundleInfo{
+			BaseInfo: BaseInfo{
+				Name:    "Clear",
+				Version: "24000",
+			},
+		},
+		UintVer: 22000,
+		MinVer:  22000,
+	}
+
+	manifests := []*swupd.Manifest{
+		{
+			Name: "MoM",
+			Header: swupd.ManifestHeader{
+				Version: 22000,
+			},
+		},
+		{
+			Name: "bundleOne",
+			Header: swupd.ManifestHeader{
+				Version: 21000,
+			},
+		},
+		{
+			Name: "bundleTwo",
+			Header: swupd.ManifestHeader{
+				Version: 21400,
+				Includes: []*swupd.Manifest{
+					{
+						Name: "bundleOne",
+						Header: swupd.ManifestHeader{
+							Version: 21000,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err := storeManifestRedis(conn, mInfo, manifests)
 	if err != nil {
 		t.Fatal(err)
 	}

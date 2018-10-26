@@ -13,3 +13,58 @@
 // limitations under the License.
 
 package pkginfo
+
+import (
+	"fmt"
+	"path/filepath"
+
+	"github.com/clearlinux/mixer-tools/swupd"
+	"github.com/gomodule/redigo/redis"
+)
+
+func getMoM(bundleInfo BundleInfo) (*swupd.Manifest, error) {
+	baseCache := filepath.Join(bundleInfo.CacheLoc, "update")
+	momPath := filepath.Join(baseCache, bundleInfo.Version, "Manifest.MoM")
+	return swupd.ParseManifestFile(momPath)
+}
+
+func getManifests(bundleInfo BundleInfo) ([]*swupd.Manifest, error) {
+	var path string
+	baseCache := filepath.Join(bundleInfo.CacheLoc, "update")
+
+	mom, err := getMoM(bundleInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add mom to manifests slice
+	manifests := []*swupd.Manifest{mom}
+	for _, manifest := range mom.Files {
+		path = filepath.Join(baseCache, fmt.Sprint(manifest.Version), "Manifest."+manifest.Name)
+		mf, err := swupd.ParseManifestFile(path)
+		if err != nil {
+			return nil, err
+		}
+		manifests = append(manifests, mf)
+	}
+	return manifests, nil
+}
+
+// ImportManifests gets the manifests from their cached location and stores
+// them into the database
+func ImportManifests(mInfo *ManifestInfo) error {
+	manifests, err := getManifests(mInfo.BundleInfo)
+	if err != nil {
+		return err
+	}
+
+	var c redis.Conn
+	if c, err = initRedis(0); err != nil {
+		return err
+	}
+	defer func() {
+		_ = c.Close()
+	}()
+
+	return storeManifestRedis(c, mInfo, manifests)
+}

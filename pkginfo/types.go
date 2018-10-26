@@ -218,7 +218,7 @@ type ManifestInfo struct {
 	UintVer   uint
 	MinVer    uint
 	Mom       *swupd.Manifest
-	Manifests []*swupd.Manifest
+	Manifests map[string]*swupd.Manifest
 }
 
 func (manifestInfo *ManifestInfo) updateManifestInfo(u *config.UInfo) error {
@@ -239,6 +239,8 @@ func (manifestInfo *ManifestInfo) updateManifestInfo(u *config.UInfo) error {
 	if !u.Recursive {
 		manifestInfo.MinVer = manifestInfo.UintVer
 	}
+
+	manifestInfo.Manifests = make(map[string]*swupd.Manifest)
 
 	return nil
 }

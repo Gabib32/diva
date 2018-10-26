@@ -15,21 +15,24 @@
 package pkginfo
 
 import (
+	"bytes"
+	"encoding/gob"
 	"fmt"
 	"reflect"
 
 	"github.com/clearlinux/diva/bundle"
 	"github.com/clearlinux/diva/internal/helpers"
+	"github.com/clearlinux/mixer-tools/swupd"
 	"github.com/gomodule/redigo/redis"
 )
 
 func storeIterableRedisSet(c redis.Conn, key string, value []string) error {
 	for i := range value {
-		if err := c.Send("SADD", key, value[i]); err != nil {
+		if _, err := c.Do("SADD", key, value[i]); err != nil {
 			return err
 		}
 	}
-	return c.Flush()
+	return nil
 }
 
 // storeRepoInfoRedis stores all data in repo to the running redis-server
@@ -115,10 +118,7 @@ func storeBundleInfoRedis(c redis.Conn, bundleInfo *BundleInfo, bundleset *bundl
 		for i := 0; i < header.NumField(); i++ {
 			headerKey := header.Type().Field(i).Name
 			headerValue := header.Field(i).Interface()
-			if err = c.Send("SET", definitionKey+":"+headerKey, headerValue); err != nil {
-				return err
-			}
-			if err = c.Flush(); err != nil {
+			if _, err = c.Do("SET", definitionKey+":"+headerKey, headerValue); err != nil {
 				return err
 			}
 		}
@@ -133,5 +133,116 @@ func storeBundleInfoRedis(c redis.Conn, bundleInfo *BundleInfo, bundleset *bundl
 			return err
 		}
 	}
+	return nil
+}
+
+func storeManifestFile(c redis.Conn, key, ftype string, files []*swupd.File) error {
+	// store file index mapping at key:itemname:files
+	//             filename -> fileN
+	// store each file map at key:itemname:fileN
+	//             fileN -> File{}
+	fKey := key + ftype
+	for fIdx, f := range files {
+		val := fmt.Sprintf("file%d", fIdx)
+		fMap := map[string]string{f.Name: val}
+		_, err := c.Do("HMSET", redis.Args{}.Add(fKey).AddFlat(fMap)...)
+		if err != nil {
+			return err
+		}
+
+		// Encode the file struct prior to storing it in the redis database
+		b := bytes.Buffer{}
+		fIdxKey := fmt.Sprintf("%s:file%d", key, fIdx)
+		err = gob.NewEncoder(&b).Encode(f)
+		if err != nil {
+			return err
+		}
+		_, err = c.Do("SET", fIdxKey, b.Bytes())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func storeManifestHeader(c redis.Conn, header *swupd.ManifestHeader, key string) error {
+	var err error
+	b := bytes.Buffer{}
+
+	// Encode the hader struct prior to storing it in the redis database
+	err = gob.NewEncoder(&b).Encode(header)
+	if err != nil {
+		return err
+	}
+	_, err = c.Do("SET", fmt.Sprintf("%s:Header", key), b.Bytes())
+	if err != nil {
+		return err
+	}
+
+	// h := reflect.ValueOf(header).Elem()
+	// for i := 0; i < h.NumField(); i++ {
+	// 	headerKey := h.Type().Field(i).Name
+	// 	headerValue := h.Field(i)
+	// 	// the header includes fields contains a slice of manifest objects. instead
+	// 	// of storing the entire object (which are already in the database), store
+	// 	// a slice of all names.
+	// 	if headerKey == "Includes" {
+	// 		includes := []string{}
+	// 		for i := 0; i < headerValue.Len(); i++ {
+	// 			includes = append(includes, header.Includes[i].Name)
+	// 			err := storeIterableRedisSet(c, key+":"+headerKey, includes)
+	// 			if err != nil {
+	// 				return err
+	// 			}
+	// 		}
+	// 	} else {
+	// 		if _, err := c.Do("SET", key+":"+headerKey, headerValue); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	// }
+	return nil
+}
+
+// manifests are stored by the version they were created/changed in, not necessarily
+// the version of the MoM, or the version requested.
+func storeManifestRedis(c redis.Conn, mInfo *ManifestInfo, manifests []*swupd.Manifest) error {
+	momKey := fmt.Sprintf("%s%smanifests", mInfo.Name, mInfo.Version)
+
+	for _, manifest := range manifests {
+		// store list of all manifest names
+		_, err := c.Do("SADD", momKey, manifest.Name)
+		if err != nil {
+			return err
+		}
+
+		// manifest should be stored with version of that bundle
+		manifestKey := fmt.Sprintf("%s%smanifests:%s", mInfo.Name, fmt.Sprint(manifest.Header.Version), manifest.Name)
+
+		// store the entire manifest object
+		_, err = c.Do("HMSET", redis.Args{}.Add(manifestKey).AddFlat(manifest)...)
+		if err != nil {
+			return err
+		}
+
+		// store manifest header
+		err = storeManifestHeader(c, &manifest.Header, manifestKey)
+		if err != nil {
+			return err
+		}
+
+		// store manifest files
+		err = storeManifestFile(c, manifestKey, ":Files", manifest.Files)
+		if err != nil {
+			return err
+		}
+
+		// store manifest deleted files
+		err = storeManifestFile(c, manifestKey, ":DeletedFiles", manifest.DeletedFiles)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }

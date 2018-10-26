@@ -68,10 +68,22 @@ var importBundlesCmd = &cobra.Command{
 $HOME/clearlinux/projects/clr-bundles by default.`,
 }
 
+var importUpdateCmd = &cobra.Command{
+	Use:   "update [--version <version>] [--upstreamurl <url>]",
+	Run:   runImportUpdateCmd,
+	Short: "Import the update at <version> or latest if not supplied",
+	Long: `Import the update at <version> from the upstream URL if <version> is supplied,
+otherwise import the latest available. If --upstreamurl is supplied, get from
+<url> instead of the configured/default upstream URL. The update data is cached
+under the cache location defined in the configuration or default to
+$HOME/clearlinux/data/update/<version>.`,
+}
+
 var importCmds = []*cobra.Command{
 	importAllCmd,
 	importRepoCmd,
 	importBundlesCmd,
+	importUpdateCmd,
 }
 
 func init() {
@@ -102,11 +114,14 @@ func init() {
 
 	importBundlesCmd.Flags().StringVarP(&importFlags.BundleURL, "bundleurl", "b", "", "URL from which to pull bundle definitions")
 	importBundlesCmd.Flags().StringVar(&importFlags.BundleURL, "bundlecache", "", "path to bundle cache destination")
+
+	importUpdateCmd.Flags().BoolVarP(&importFlags.Recursive, "recursive", "r", false, "recursively fetch all content referenced in update metadata")
 }
 
 func runImportAllCmd(cmd *cobra.Command, args []string) {
 	runImportRepoCmd(cmd, args)
 	runImportBundlesCmd(cmd, args)
+	runImportUpdateCmd(cmd, args)
 }
 
 func runImportRepoCmd(cmd *cobra.Command, args []string) {
@@ -133,4 +148,11 @@ func runImportBundlesCmd(cmd *cobra.Command, args []string) {
 	bundleInfo, err := pkginfo.NewBundleInfo(conf, &u)
 	helpers.FailIfErr(err)
 	diva.ImportBundles(&bundleInfo)
+}
+
+func runImportUpdateCmd(cmd *cobra.Command, args []string) {
+	u := config.NewUinfo(importFlags, conf)
+	mInfo, err := pkginfo.NewManifestInfo(conf, &u)
+	helpers.FailIfErr(err)
+	diva.ImportUpdate(&mInfo)
 }

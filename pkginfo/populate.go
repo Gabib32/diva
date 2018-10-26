@@ -45,3 +45,18 @@ func PopulateBundles(bundleInfo *BundleInfo, bundleName string) error {
 
 	return getBundlesRedis(c, bundleInfo, bundleName)
 }
+
+// PopulateManifests queries the database for manifest information and stores
+// it into the mInfo object
+func PopulateManifests(mInfo *ManifestInfo) error {
+	var err error
+	var c redis.Conn
+	if c, err = initRedis(0); err != nil {
+		return err
+	}
+	defer func() {
+		_ = c.Close()
+	}()
+
+	return getManifestsRedis(c, mInfo)
+}
