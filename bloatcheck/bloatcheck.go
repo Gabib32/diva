@@ -39,7 +39,6 @@ func getManifests(bundleInfo pkginfo.BundleInfo) ([]*swupd.Manifest, error) {
 	var path string
 	var manifests []*swupd.Manifest
 	for _, manifest := range mom.Files {
-
 		path = filepath.Join(baseCache, fmt.Sprint(manifest.Version), "Manifest."+manifest.Name)
 		mf, err := swupd.ParseManifestFile(path)
 		if err != nil {
@@ -99,6 +98,9 @@ func getSizes(bundleInfo pkginfo.BundleInfo, m *swupd.Manifest, mom *swupd.Manif
 // GetBundleSize gets the full size of all bundles in a given version
 func GetBundleSize(bundleInfo pkginfo.BundleInfo) (map[string]int64, error) {
 	manifests, err := getManifests(bundleInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	var wg sync.WaitGroup
 	bundleWorkers := len(manifests)

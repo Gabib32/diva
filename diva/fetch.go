@@ -89,7 +89,7 @@ func FetchBundles(conf *config.Config, u *config.UInfo) {
 // minfo.Cacheloc
 func DownloadUpdate(mInfo *pkginfo.ManifestInfo) {
 	helpers.PrintBegin("fetching manifests from %s at version %v", mInfo.UpstreamURL, mInfo.Version)
-	err := download.UpdateContent(mInfo)
+	err := download.UpdateContent(*mInfo)
 	helpers.FailIfErr(err)
 	helpers.PrintComplete("manifests cached at %s", mInfo.CacheLoc)
 }

@@ -26,8 +26,8 @@ import (
 	"github.com/clearlinux/mixer-tools/swupd"
 )
 
-// Manifest downloads a manifest to outF
-func Manifest(baseURL string, version string, component, outF string) error {
+// GetManfest downloads a manifest to outF
+func GetManfest(baseURL string, version string, component, outF string) error {
 	if _, err := os.Lstat(outF); err == nil {
 		return nil
 	}
@@ -45,28 +45,30 @@ func Manifest(baseURL string, version string, component, outF string) error {
 	return nil
 }
 
-// UpdateContent downloads all manifest from the MOM file
-func UpdateContent(mInfo *pkginfo.ManifestInfo) error {
-	var err error
-
+// GetMom returns the downloaded and parsed swupd.manifest mom object
+func GetMom(mInfo pkginfo.ManifestInfo) (*swupd.Manifest, error) {
 	baseCache := filepath.Join(mInfo.CacheLoc, "update")
 	outMoM := filepath.Join(baseCache, mInfo.Version, "Manifest.MoM")
-	err = Manifest(mInfo.UpstreamURL, mInfo.Version, "MoM", outMoM)
+	err := GetManfest(mInfo.UpstreamURL, mInfo.Version, "MoM", outMoM)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	mom, err := swupd.ParseManifestFile(outMoM)
-	if err != nil {
-		return err
-	}
+	return swupd.ParseManifestFile(outMoM)
+}
 
+// UpdateContent downloads all manifests from the MOM file
+func UpdateContent(mInfo pkginfo.ManifestInfo) error {
+	mom, err := GetMom(mInfo)
+	if err != nil {
+		return err
+	}
+	baseCache := filepath.Join(mInfo.CacheLoc, "update")
+
+	// iterate mom files and download all manifests to cache location based on ver
 	for i := range mom.Files {
-		ver := uint(mom.Files[i].Version)
-		if ver < mInfo.MinVer {
-			continue
-		}
-		outMan := filepath.Join(baseCache, fmt.Sprint(ver), "Manifest."+mom.Files[i].Name)
-		err := Manifest(mInfo.UpstreamURL, mInfo.Version, mom.Files[i].Name, outMan)
+		ver := fmt.Sprint(mom.Files[i].Version)
+		outMan := filepath.Join(baseCache, ver, "Manifest."+mom.Files[i].Name)
+		err := GetManfest(mInfo.UpstreamURL, ver, mom.Files[i].Name, outMan)
 		if err != nil {
 			return err
 		}
@@ -80,28 +82,20 @@ type finfo struct {
 	err error
 }
 
-func getAllManifests(mInfo pkginfo.ManifestInfo) (map[string]finfo, error) {
+func getAllManifestFiles(mInfo pkginfo.ManifestInfo) (map[string]finfo, error) {
 	dlFiles := make(map[string]finfo)
 	baseCache := filepath.Join(mInfo.CacheLoc, "update")
-	outMoM := filepath.Join(baseCache, mInfo.Version, "Manifest.MoM")
-	err := Manifest(mInfo.UpstreamURL, mInfo.Version, "MoM", outMoM)
-	if err != nil {
-		return nil, err
-	}
 
-	mom, err := swupd.ParseManifestFile(outMoM)
+	mom, err := GetMom(mInfo)
 	if err != nil {
 		return nil, err
 	}
 
 	// this is fast, no need to parallelize
 	for i := range mom.Files {
-		mv := uint(mom.Files[i].Version)
-		if mv < mInfo.MinVer {
-			continue
-		}
-		outMan := filepath.Join(baseCache, fmt.Sprint(mv), "Manifest."+mom.Files[i].Name)
-		err := Manifest(mInfo.UpstreamURL, fmt.Sprint(mv), mom.Files[i].Name, outMan)
+		mv := fmt.Sprint(mom.Files[i].Version)
+		outMan := filepath.Join(baseCache, mv, "Manifest."+mom.Files[i].Name)
+		err := GetManfest(mInfo.UpstreamURL, mv, mom.Files[i].Name, outMan)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +106,11 @@ func getAllManifests(mInfo pkginfo.ManifestInfo) (map[string]finfo, error) {
 		}
 
 		for _, f := range m.Files {
-			if uint(f.Version) < mInfo.MinVer || !f.Present() {
+			// TODO: What is this and why does it cause wg.Wait() to deadlock
+			// Also, will this not download files less than MinVer (which is current version unless recursion is passed)
+			// Do we need an actual minversion that is the earliest minversion to format bump
+			// if uint(f.Version) < mInfo.MinVer ||
+			if !f.Present() {
 				continue
 			}
 
@@ -127,7 +125,7 @@ func getAllManifests(mInfo pkginfo.ManifestInfo) (map[string]finfo, error) {
 
 // UpdateFiles downloads relevant files for u.Ver from u.URL
 func UpdateFiles(mInfo *pkginfo.ManifestInfo) error {
-	dlFiles, err := getAllManifests(*mInfo)
+	dlFiles, err := getAllManifestFiles(*mInfo)
 	if err != nil {
 		return err
 	}
