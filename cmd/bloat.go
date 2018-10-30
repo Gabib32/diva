@@ -115,12 +115,15 @@ func checkSize(name *string, sizeDiff, size float64) (float64, bool) {
 func runBloatCheck(r *diva.Results, manifests *manifestsInfo, args []string) error {
 	var err error
 
+	err = pkginfo.PopulateManifests(&manifests.minMInfo)
+	helpers.FailIfErr(err)
+
 	err = pkginfo.PopulateBundles(&manifests.minMInfo.BundleInfo, "")
 	if err != nil {
 		return err
 	}
 
-	fromBundleSizes, err := bloatcheck.GetBundleSize(manifests.minMInfo.BundleInfo)
+	fromBundleSizes, err := bloatcheck.GetBundleSize(manifests.minMInfo)
 	if err != nil {
 		return err
 	}
@@ -134,13 +137,16 @@ func runBloatCheck(r *diva.Results, manifests *manifestsInfo, args []string) err
 		return nil
 	}
 
+	err = pkginfo.PopulateManifests(&manifests.maxMInfo)
+	helpers.FailIfErr(err)
+
 	// Need both version of bundle definitions
 	err = pkginfo.PopulateBundles(&manifests.maxMInfo.BundleInfo, "")
 	if err != nil {
 		return err
 	}
 
-	toBundleSizes, err := bloatcheck.GetBundleSize(manifests.maxMInfo.BundleInfo)
+	toBundleSizes, err := bloatcheck.GetBundleSize(manifests.maxMInfo)
 	if err != nil {
 		return err
 	}
