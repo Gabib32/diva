@@ -64,8 +64,8 @@ func runUCCheck(cmd *cobra.Command, args []string) {
 	manifestInfo, err := pkginfo.NewManifestInfo(conf, &u)
 	helpers.FailIfErr(err)
 
-	// TODO: Populate manifestInfo with update content and UpdateFiles
-	diva.FetchUpdateAll(conf, &u)
+	err = pkginfo.PopulateManifests(&manifestInfo)
+	helpers.FailIfErr(err)
 
 	results, err := UCCheck(&manifestInfo)
 	helpers.FailIfErr(err)
