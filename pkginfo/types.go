@@ -62,7 +62,7 @@ type Repo struct {
 	RPMCache string
 	Type     string
 	Priority uint
-	Packages []*RPM
+	Packages map[string]*RPM
 }
 
 func getRepoURI(repo *Repo, loc string) error {
@@ -111,6 +111,8 @@ func (repo *Repo) updateRepo(u *config.UInfo) error {
 	if repo.RPMCache == config.DefaultConf().Paths.LocalRPMRepo {
 		repo.RPMCache = fmt.Sprintf("%s/rpms/%s/%s/%s/packages", repo.CacheLoc, repo.Name, repo.Version, repo.Type)
 	}
+	repo.Packages = make(map[string]*RPM)
+
 	return nil
 }
 

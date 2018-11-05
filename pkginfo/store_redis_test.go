@@ -37,8 +37,8 @@ func TestStoreRPMInfoRedis(t *testing.T) {
 			Name:    "testrepo",
 		},
 		Type: "B",
-		Packages: []*RPM{
-			{
+		Packages: map[string]*RPM{
+			"testpkg": {
 				Name:     "testpkg",
 				Version:  "100",
 				Release:  "1",

@@ -61,10 +61,9 @@ func ImportRPM(repo *Repo, rpm, path string, update bool) (*RPM, error) {
 	defer func() {
 		_ = c.Close()
 	}()
-	for _, r := range repo.Packages {
-		if r.Name == rpm {
-			return r, storeRPMInfoRedis(c, repo, r)
-		}
+
+	if r, ok := repo.Packages[rpm]; ok {
+		return r, storeRPMInfoRedis(c, repo, r)
 	}
 
 	return nil, fmt.Errorf("unable to find %s RPM in %s repo", rpm, repo.Name)
@@ -123,16 +122,6 @@ func rpmFromPackage(pkg *rpm.PackageFile) *RPM {
 	return rpm
 }
 
-func appendUniqueRPMName(rpms []*RPM, rpm *RPM) []*RPM {
-	for i := range rpms {
-		if rpms[i].Name == rpm.Name {
-			return rpms
-		}
-	}
-
-	return append(rpms, rpm)
-}
-
 func loadRepoFromCache(repo *Repo, cacheLoc string) error {
 	rpms, err := rpm.OpenPackageFiles(cacheLoc)
 	if err != nil {
@@ -140,7 +129,7 @@ func loadRepoFromCache(repo *Repo, cacheLoc string) error {
 	}
 
 	for i := range rpms {
-		repo.Packages = appendUniqueRPMName(repo.Packages, rpmFromPackage(rpms[i]))
+		repo.Packages[rpms[i].Name()] = rpmFromPackage(rpms[i])
 	}
 
 	return nil

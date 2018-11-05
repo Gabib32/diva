@@ -13,36 +13,3 @@
 // limitations under the License.
 
 package pkginfo
-
-import (
-	"fmt"
-	"testing"
-)
-
-func TestAppendUniqueRPMName(t *testing.T) {
-	rpms := []*RPM{
-		{Name: "0"},
-		{Name: "1"},
-		{Name: "2"},
-		{Name: "3"},
-	}
-
-	rpmsToAppend := []*RPM{
-		{Name: "1"},
-		{Name: "4"},
-	}
-
-	for _, r := range rpmsToAppend {
-		rpms = appendUniqueRPMName(rpms, r)
-	}
-
-	if len(rpms) != 5 {
-		t.Errorf("expected 5 total RPMs but got %d", len(rpms))
-	}
-
-	for i, r := range rpms {
-		if r.Name != fmt.Sprint(i) {
-			t.Errorf("expected %s but got %s", fmt.Sprint(i), r.Name)
-		}
-	}
-}

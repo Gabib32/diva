@@ -33,7 +33,8 @@ func TestGetRepoRedis(t *testing.T) {
 			Name:    "testrepo",
 			Version: "100",
 		},
-		Type: "B",
+		Type:     "B",
+		Packages: make(map[string]*RPM),
 	}
 	repoKey := fmt.Sprintf("%s%s%s", repo.Name, repo.Version, repo.Type)
 	pkgsKey := fmt.Sprintf("%s:packages", repoKey)
@@ -75,7 +76,7 @@ func TestGetRepoRedis(t *testing.T) {
 		t.Fatalf("expected 1 package but got %d", len(repo.Packages))
 	}
 
-	p := repo.Packages[0]
+	p := repo.Packages["testpkg"]
 
 	if p.Name != "testpkg" {
 		t.Errorf("RPM was named '%s' but expected testpkg", p.Name)

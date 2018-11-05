@@ -21,8 +21,8 @@ import (
 func TestGetRPMFromRepo(t *testing.T) {
 	rpm := "testrpm"
 	repo := &Repo{
-		Packages: []*RPM{
-			{
+		Packages: map[string]*RPM{
+			rpm: {
 				Name:    rpm,
 				Version: "testVersion",
 			},

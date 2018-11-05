@@ -130,7 +130,7 @@ func getRepoRedis(c redis.Conn, repo *Repo) error {
 		if err != nil {
 			return err
 		}
-		repo.Packages = appendUniqueRPMName(repo.Packages, p)
+		repo.Packages[p.Name] = p
 	}
 
 	return nil
