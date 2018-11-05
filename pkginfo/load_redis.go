@@ -122,7 +122,7 @@ func getRepoRedis(c redis.Conn, repo *Repo) error {
 		return err
 	}
 	if len(pIdxs) == 0 {
-		return fmt.Errorf(`no repo data found. Try running "diva fetch repo -v <version>" to populate database`)
+		return fmt.Errorf(`no repo data found. Try running "diva <fetch|import> repo -v <version>" to populate database`)
 	}
 
 	for _, pn := range pIdxs {
@@ -219,7 +219,7 @@ func getBundleRedis(c redis.Conn, bundleInfo *BundleInfo, bundleName string) err
 	bundleInfo.BundleDefinitions[b.Name] = b
 
 	if len(bundleInfo.BundleDefinitions) == 0 {
-		return fmt.Errorf(`no bundle definitions found. Try running "diva fetch bundles -v <version>" to populate database`)
+		return fmt.Errorf(`no bundle definitions found. Try running "diva <fetch|import> bundles -v <version>" to populate database`)
 	}
 
 	return nil
@@ -237,7 +237,7 @@ func getBundlesRedis(c redis.Conn, bundleInfo *BundleInfo, bundleName string) er
 	}
 
 	if len(bIdxs) == 0 {
-		return fmt.Errorf(`no bundle definitions found. Try running "diva fetch bundles -v <version>" to populate database`)
+		return fmt.Errorf(`no bundle definitions found. Try running "diva <fetch|import> bundles -v <version>" to populate database`)
 	}
 
 	for _, bn := range bIdxs {
@@ -380,7 +380,7 @@ func getManifestsRedis(c redis.Conn, mInfo *ManifestInfo) error {
 	}
 
 	if len(mIdxs) == 0 {
-		return fmt.Errorf(`no manifests found. Try running "diva fetch update -v <version>" to populate database`)
+		return fmt.Errorf(`no manifests found. Try running "diva <fetch|import> update -v <version>" to populate database`)
 	}
 
 	momKey := fmt.Sprintf("%s%smanifests:MoM", mInfo.Name, mInfo.Version)
