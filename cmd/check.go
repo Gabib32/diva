@@ -29,4 +29,5 @@ func init() {
 	checkCmd.AddCommand(pyDepsCmd)
 	checkCmd.AddCommand(ucCmd)
 	checkCmd.AddCommand(verifyBundlesCmd)
+	checkCmd.AddCommand(rpmDepsCmd)
 }

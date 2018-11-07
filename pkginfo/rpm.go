@@ -29,10 +29,23 @@ func getRPMFromRepo(repo *Repo, rpm string) *RPM {
 	return nil
 }
 
+// func GetRPMFromRepo(repo *Repo, rpm string) (*RPM, error) {
+// 	sort.Slice(repo.Packages, func(i int, j int) bool {
+// 		return repo.Packages[i].Name < repo.Packages[j].Name
+// 	})
+//
+// 	return nil, nil
+// }
+
 // GetRPM fetches information about an RPM in a repo. Returns a pointer to the
 // associated RPM struct.
 func GetRPM(repo *Repo, rpm string) (*RPM, error) {
-	if r := getRPMFromRepo(repo, rpm); r != nil {
+	// if r := getRPMFromRepo(repo, rpm); r != nil {
+	// 	return r, nil
+	// }
+
+	r := repo.Packages[rpm]
+	if r != nil {
 		return r, nil
 	}
 
