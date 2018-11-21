@@ -117,8 +117,8 @@ func UpdateFiles(mInfo *pkginfo.ManifestInfo) error {
 	wg.Wait()
 	close(errChan)
 
-	if len(errChan) > 0 {
-		helpers.PrintComplete("errors downloading %d files", len(errChan))
+	if len(errs) > 0 {
+		helpers.PrintComplete("errors downloading %d files", len(errs))
 		for _, e := range errs {
 			helpers.PrintComplete(e.Error())
 		}
