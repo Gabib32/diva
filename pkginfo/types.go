@@ -210,7 +210,7 @@ type ManifestInfo struct {
 	BundleInfo
 	UintVer   uint
 	MinVer    uint
-	Mom       *swupd.Manifest
+	MoM       *swupd.Manifest
 	Manifests map[string]*swupd.Manifest
 }
 

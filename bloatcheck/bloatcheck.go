@@ -64,8 +64,8 @@ func GetBundleSize(mInfo pkginfo.ManifestInfo) (map[string]int64, error) {
 
 	var bundleSizes = make(map[string]int64)
 
-	sort.Slice(mInfo.Mom.Files, func(i, j int) bool {
-		return mInfo.Mom.Files[i].Name < mInfo.Mom.Files[j].Name
+	sort.Slice(mInfo.MoM.Files, func(i, j int) bool {
+		return mInfo.MoM.Files[i].Name < mInfo.MoM.Files[j].Name
 	})
 
 	for i := 0; i < bundleWorkers; i++ {

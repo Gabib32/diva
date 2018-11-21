@@ -331,12 +331,12 @@ func getManifestsRedis(c redis.Conn, mInfo *ManifestInfo) error {
 	}
 
 	momKey := fmt.Sprintf("%s%smanifests:MoM", mInfo.Name, mInfo.Version)
-	mInfo.Mom, err = getManifestRedis(c, momKey)
+	mInfo.MoM, err = getManifestRedis(c, momKey)
 	if err != nil {
 		return err
 	}
 
-	for _, mFile := range mInfo.Mom.Files {
+	for _, mFile := range mInfo.MoM.Files {
 		manifestKey := fmt.Sprintf("%s%smanifests:%s", mInfo.Name, fmt.Sprint(mFile.Version), mFile.Name)
 		m, err := getManifestRedis(c, manifestKey)
 		if err != nil {
