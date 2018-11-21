@@ -25,31 +25,26 @@ import (
 	"github.com/clearlinux/diva/diva"
 	"github.com/clearlinux/diva/internal/config"
 	"github.com/clearlinux/diva/internal/helpers"
+	"github.com/clearlinux/diva/pkginfo"
 
 	"github.com/clearlinux/mixer-tools/swupd"
 )
 
 // CheckManifestHashes compares manifest hashes against the hashes listed in
 // the MoM for that version
-func CheckManifestHashes(r *diva.Results, c *config.Config, version, minVer uint) error {
-	cLoc := filepath.Join(c.Paths.CacheLocation, "update")
-	momPath := filepath.Join(cLoc, fmt.Sprint(version), "Manifest.MoM")
-	MoM, err := swupd.ParseManifestFile(momPath)
-	if err != nil {
-		return err
-	}
-	for i := range MoM.Files {
-		if uint(MoM.Files[i].Version) < minVer {
+func CheckManifestHashes(r *diva.Results, c *config.Config, mInfo *pkginfo.ManifestInfo) error {
+	for i := range mInfo.MoM.Files {
+		if uint(mInfo.MoM.Files[i].Version) < mInfo.MinVer {
 			continue
 		}
-		mPath := filepath.Join(
-			cLoc, fmt.Sprint(MoM.Files[i].Version), "Manifest."+MoM.Files[i].Name)
+		mPath := filepath.Join(c.Paths.CacheLocation, "update",
+			fmt.Sprint(mInfo.MoM.Files[i].Version), "Manifest."+mInfo.MoM.Files[i].Name)
 		hash, err := swupd.Hashcalc(mPath)
 		if err != nil {
 			return err
 		}
-		desc := fmt.Sprintf("Manifest.%s hash matches hash in MoM", MoM.Files[i].Name)
-		r.Ok(hash == MoM.Files[i].Hash, desc)
+		desc := fmt.Sprintf("Manifest.%s hash matches hash in MoM", mInfo.MoM.Files[i].Name)
+		r.Ok(hash == mInfo.MoM.Files[i].Hash, desc)
 	}
 
 	return nil
@@ -119,15 +114,10 @@ func checkBundleFileHashes(cacheLoc string, m *swupd.Manifest, minVer uint) ([]s
 
 // CheckFileHashes checks that the downloaded file content matches the hashes
 // listed in the manifests
-func CheckFileHashes(r *diva.Results, c *config.Config, version, minVer uint) error {
-	cLoc := filepath.Join(c.Paths.CacheLocation, "update")
-	momPath := filepath.Join(cLoc, fmt.Sprint(version), "Manifest.MoM")
-	MoM, err := swupd.ParseManifestFile(momPath)
-	if err != nil {
-		return err
-	}
+func CheckFileHashes(r *diva.Results, c *config.Config, mInfo *pkginfo.ManifestInfo) error {
+	var err error
 	var wg sync.WaitGroup
-	nworkers := len(MoM.Files)
+	nworkers := len(mInfo.MoM.Files)
 	wg.Add(nworkers)
 	fChan := make(chan *swupd.File)
 	errChan := make(chan error, nworkers)
@@ -136,16 +126,16 @@ func CheckFileHashes(r *diva.Results, c *config.Config, version, minVer uint) er
 		go func() {
 			defer wg.Done()
 			for f := range fChan {
-				if uint(f.Version) < minVer {
+				if uint(f.Version) < mInfo.MinVer {
 					continue
 				}
-				mPath := filepath.Join(cLoc, fmt.Sprint(f.Version), "Manifest."+f.Name)
+				mPath := filepath.Join(c.Paths.CacheLocation, "update", fmt.Sprint(f.Version), "Manifest."+f.Name)
 				m, e := swupd.ParseManifestFile(mPath)
 				if e != nil {
 					errChan <- e
 					break
 				}
-				failures, e := checkBundleFileHashes(c.Paths.CacheLocation, m, minVer)
+				failures, e := checkBundleFileHashes(c.Paths.CacheLocation, m, mInfo.MinVer)
 				if e != nil {
 					errChan <- e
 					break
@@ -159,10 +149,10 @@ func CheckFileHashes(r *diva.Results, c *config.Config, version, minVer uint) er
 		}()
 	}
 
-	for i := range MoM.Files {
-		fChan <- MoM.Files[i]
+	for i := range mInfo.MoM.Files {
+		fChan <- mInfo.MoM.Files[i]
 		select {
-		case fChan <- MoM.Files[i]:
+		case fChan <- mInfo.MoM.Files[i]:
 		case err = <-errChan:
 			// break on first failure
 			break
@@ -417,14 +407,8 @@ func CheckDeltaPacks(c *config.Config, m *swupd.Manifest) ([]string, error) {
 
 // CheckPacks validates the file contents of packs against manifest hashes
 // using the pack check function pc
-func CheckPacks(r *diva.Results, c *config.Config, version, minVer uint, delta bool) error {
-	cLoc := filepath.Join(c.Paths.CacheLocation, "update")
-	momPath := filepath.Join(cLoc, fmt.Sprint(version), "Manifest.MoM")
-	MoM, err := swupd.ParseManifestFile(momPath)
-	if err != nil {
-		return err
-	}
-
+func CheckPacks(r *diva.Results, c *config.Config, mInfo *pkginfo.ManifestInfo, delta bool) error {
+	var err error
 	var wg sync.WaitGroup
 	workers := 4
 	wg.Add(workers)
@@ -435,10 +419,10 @@ func CheckPacks(r *diva.Results, c *config.Config, version, minVer uint, delta b
 		go func() {
 			defer wg.Done()
 			for man := range bCh {
-				if uint(man.Version) < minVer {
+				if uint(man.Version) < mInfo.MinVer {
 					continue
 				}
-				mPath := filepath.Join(cLoc, fmt.Sprint(man.Version), "Manifest."+man.Name)
+				mPath := filepath.Join(c.Paths.CacheLocation, "update", fmt.Sprint(man.Version), "Manifest."+man.Name)
 				m, e := swupd.ParseManifestFile(mPath)
 				if e != nil {
 					eCh <- e
@@ -466,7 +450,7 @@ func CheckPacks(r *diva.Results, c *config.Config, version, minVer uint, delta b
 		}()
 	}
 
-	for _, b := range MoM.Files {
+	for _, b := range mInfo.MoM.Files {
 		select {
 		case bCh <- b:
 		case err = <-eCh:

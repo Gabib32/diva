@@ -82,19 +82,19 @@ func UCCheck(m *pkginfo.ManifestInfo) (*diva.Results, error) {
 	r := diva.NewSuite("updatecontent", "check update content for release")
 
 	r.Header(0)
-	err = updatecontent.CheckManifestHashes(r, conf, m.UintVer, m.MinVer)
+	err = updatecontent.CheckManifestHashes(r, conf, m)
 	if err != nil {
 		return r, err
 	}
-	err = updatecontent.CheckFileHashes(r, conf, m.UintVer, m.MinVer)
+	err = updatecontent.CheckFileHashes(r, conf, m)
 	if err != nil {
 		return r, err
 	}
-	err = updatecontent.CheckPacks(r, conf, m.UintVer, m.MinVer, true)
+	err = updatecontent.CheckPacks(r, conf, m, true)
 	if err != nil {
 		return r, err
 	}
-	err = updatecontent.CheckPacks(r, conf, m.UintVer, m.MinVer, false)
+	err = updatecontent.CheckPacks(r, conf, m, false)
 	if err != nil {
 		return r, err
 	}
