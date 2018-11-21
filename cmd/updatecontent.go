@@ -64,8 +64,10 @@ func runUCCheck(cmd *cobra.Command, args []string) {
 	manifestInfo, err := pkginfo.NewManifestInfo(conf, &u)
 	helpers.FailIfErr(err)
 
+	helpers.PrintBegin("Populating manifests from database")
 	err = pkginfo.PopulateManifests(&manifestInfo)
 	helpers.FailIfErr(err)
+	helpers.PrintComplete("Manifests populated")
 
 	results, err := UCCheck(&manifestInfo)
 	helpers.FailIfErr(err)
