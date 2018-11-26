@@ -31,5 +31,5 @@ func init() {
 	checkCmd.AddCommand(ucCmd)
 	checkCmd.AddCommand(verifyBundlesCmd)
 	checkCmd.AddCommand(rpmFileConflictsCmd)
-	checkCmd.AddCommand(certsCmd)
+	checkCmd.AddCommand(sigCmd)
 }
