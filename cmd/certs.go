@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -61,6 +62,13 @@ func verifyMoM(r *diva.Results, baseCache, version, cert string) error {
 
 	mom := filepath.Join(cache, "Manifest.MoM")
 	sig := filepath.Join(cache, "Manifest.MoM.sig")
+
+	_, momExists := os.Stat(mom)
+	_, sigExists := os.Stat(sig)
+	if os.IsNotExist(momExists) || os.IsNotExist(sigExists) {
+		return fmt.Errorf("%s or %s does not exist at %s for version %s",
+			mom, sig, cache, version)
+	}
 
 	err := helpers.RunCommandSilent("openssl", "smime", "-verify", "-in", sig,
 		"-inform", "der", "-content", mom, "-purpose", "any", "-CAfile", cert)
