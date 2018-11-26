@@ -22,12 +22,8 @@ check:
 # to coverprofile. Update this to work on all packages.
 .PHONY: checkcoverage
 checkcoverage:
-ifeq (,${PKG})
-	$(error PKG is not set, try make PKG=internal/config checkcoverage)
-else
-	go test -cover ${GO_PACKAGE_PREFIX}/${PKG} -coverprofile=coverage.out
+	go test -cover ${GO_PACKAGE_PREFIX}/... -coverprofile=coverage.out
 	go tool cover -html=coverage.out
-endif
 
 .PHONY: lint
 lint:
