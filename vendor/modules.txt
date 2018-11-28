@@ -1,0 +1,36 @@
+# github.com/BurntSushi/toml v0.3.1
+github.com/BurntSushi/toml
+# github.com/cavaliercoder/go-rpm v0.0.0-20180809195645-44d49fb2a883
+github.com/cavaliercoder/go-rpm
+# github.com/clearlinux/mixer-tools v5.4.0+incompatible
+github.com/clearlinux/mixer-tools/swupd
+github.com/clearlinux/mixer-tools/helpers
+# github.com/go-ini/ini v1.39.0
+github.com/go-ini/ini
+# github.com/go-test/deep v1.0.1
+github.com/go-test/deep
+# github.com/gomodule/redigo v2.0.0+incompatible
+github.com/gomodule/redigo/redis
+github.com/gomodule/redigo/internal
+# github.com/inconshreveable/mousetrap v1.0.0
+github.com/inconshreveable/mousetrap
+# github.com/mndrix/tap-go v0.0.0-20171203230836-629fa407e90b
+github.com/mndrix/tap-go
+# github.com/pkg/errors v0.8.0
+github.com/pkg/errors
+# github.com/rafaeljusto/redigomock v0.0.0-20181020085750-2c62053f7724
+github.com/rafaeljusto/redigomock
+# github.com/spf13/cobra v0.0.3
+github.com/spf13/cobra
+# github.com/spf13/pflag v1.0.3
+github.com/spf13/pflag
+# golang.org/x/crypto v0.0.0-20181126163421-e657309f52e7
+golang.org/x/crypto/openpgp
+golang.org/x/crypto/openpgp/armor
+golang.org/x/crypto/openpgp/errors
+golang.org/x/crypto/openpgp/packet
+golang.org/x/crypto/openpgp/s2k
+golang.org/x/crypto/cast5
+golang.org/x/crypto/openpgp/elgamal
+# gopkg.in/yaml.v2 v2.2.1
+gopkg.in/yaml.v2
