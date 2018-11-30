@@ -38,11 +38,8 @@ func ImportAllRPMs(repo *Repo, update bool) error {
 	defer func() {
 		_ = c.Close()
 	}()
-	if err = storeRepoInfoRedis(c, repo); err != nil {
-		return err
-	}
 
-	return nil
+	return storeRepoInfoRedis(c, repo)
 }
 
 // ImportRPM imports a single RPM named <rpm> from a given repo. It adds the
