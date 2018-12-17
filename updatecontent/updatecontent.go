@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -51,8 +52,15 @@ func CheckManifestHashes(r *diva.Results, c *config.Config, mInfo *pkginfo.Manif
 }
 
 func checkBundleFileHashes(cacheLoc string, m *swupd.Manifest, minVer uint) ([]string, error) {
+	var workers int
+	FILECAP := runtime.NumCPU() * 3
+	if len(m.Files) <= FILECAP {
+		workers = len(m.Files)
+	} else {
+		workers = FILECAP
+	}
+
 	var wg sync.WaitGroup
-	workers := len(m.Files)
 	wg.Add(workers)
 	fCh := make(chan *swupd.File)
 	eCh := make(chan error, workers)
